@@ -136,12 +136,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  QWebEngineSettings::defaultSettings()->setAttribute(
-      QWebEngineSettings::DnsPrefetchEnabled, true);
-  QWebEngineSettings::defaultSettings()->setAttribute(
-      QWebEngineSettings::FullScreenSupportEnabled, true);
-  QWebEngineSettings::defaultSettings()->setAttribute(
-      QWebEngineSettings::JavascriptCanAccessClipboard, true);
+  QWebEngineProfile *profile = QWebEngineProfile::defaultProfile();
+  profile->settings()->setUserStyleSheetUrl(QUrl::fromLocalFile("dark_mode.css"));
 
   MainWindow whatsie;
 

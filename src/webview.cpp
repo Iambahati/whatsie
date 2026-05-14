@@ -121,3 +121,4 @@ void WebView::contextMenuEvent(QContextMenuEvent *event) {
   connect(menu, &QMenu::aboutToHide, menu, &QObject::deleteLater);
   menu->popup(event->globalPos());
 }
+

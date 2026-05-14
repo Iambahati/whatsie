@@ -133,21 +133,19 @@ void MainWindow::updatePageTheme() {
                               .value("windowTheme", "light")
                               .toString();
 
+    // The JavaScript injection for localStorage and body class is now redundant
+    // as the user stylesheet is applied to the QWebEngineProfile.
+    // We only need to set the background color of the QWebEnginePage itself.
     if (windowTheme == "dark") {
-      m_webEngine->page()->runJavaScript(
-          "localStorage['system-theme-mode']='false'; "
-          "localStorage.theme='\"dark\"'; ");
-
-      m_webEngine->page()->runJavaScript(
-          "document.querySelector('body').classList.add('" + windowTheme +
-          "');");
+      // localStorage['system-theme-mode']='false';
+      // localStorage.theme='"dark"';
+      // document.querySelector('body').classList.add('" + windowTheme + "');
+      m_webEngine->page()->setBackgroundColor(QColor(17, 27, 33)); // whatsapp dark bg color
     } else {
-      m_webEngine->page()->runJavaScript(
-          "localStorage['system-theme-mode']='false'; "
-          "localStorage.theme='\"light\"'; ");
-
-      m_webEngine->page()->runJavaScript(
-          "document.querySelector('body').classList.remove('dark');");
+      // localStorage['system-theme-mode']='false';
+      // localStorage.theme='"light"';
+      // document.querySelector('body').classList.remove('dark');
+      m_webEngine->page()->setBackgroundColor(QColor(240, 240, 240)); // whatsapp light bg color
     }
   }
 }
