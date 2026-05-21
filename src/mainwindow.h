@@ -32,6 +32,7 @@
 #include "requestinterceptor.h"
 #include "settingswidget.h"
 #include "theme.h"
+#include "updatechecker.h"
 #include "webenginepage.h"
 #include "webview.h"
 
@@ -91,6 +92,7 @@ private:
   void initAutoLock();
   void triggerNewChat(const QString &phone, const QString &text);
   void restoreMainWindow();
+  void initUpdateChecker();
 
   QIcon m_trayIconNormal;
   QRegularExpression m_notificationsTitleRegExp;
@@ -110,6 +112,7 @@ private:
   QAction *m_lockAction = nullptr;
   QAction *m_fullscreenAction = nullptr;
   QAction *m_openUrlAction = nullptr;
+  QAction *m_updateAction = nullptr;
 
   QMenu *m_trayIconMenu = nullptr;
   QSystemTrayIcon *m_systemTrayIcon = nullptr;
@@ -117,6 +120,7 @@ private:
   SettingsWidget *m_settingsWidget = nullptr;
   Lock *m_lockWidget = nullptr;
   AutoLockEventFilter *m_autoLockEventFilter = nullptr;
+  UpdateChecker *m_updateChecker = nullptr;
   Qt::WindowStates windowStateBeforeFullScreen;
 
   QString userDesktopEnvironment = Utils::detectDesktopEnvironment();
@@ -132,6 +136,11 @@ private slots:
   void quitApp();
   void changeLockPassword();
   void appAutoLockChanged();
+  void onUpdateAvailable(QString version, QString downloadUrl);
+  void onUpdateDownloadProgress(qint64 received, qint64 total);
+  void onUpdateDownloadFinished(QString localPath);
+  void onUpdateCheckError(QString message);
+  void onUpdateActionTriggered();
 };
 
 #endif // MAINWINDOW_H

@@ -23,7 +23,7 @@ equals(QMAKE_HOST.arch, aarch64) {
 # Uncomment if you need specific linker flags as well
 #QMAKE_LFLAGS += $$QMAKE_LDFLAGS
 
-QT += core gui webengine webenginewidgets positioning
+QT += core gui webengine webenginewidgets positioning network
 
 CONFIG += c++17
 
@@ -95,6 +95,7 @@ SOURCES += \
         settingswidget.cpp \
         sunclock.cpp \
         theme.cpp \
+        updatechecker.cpp \
         utils.cpp \
         webenginepage.cpp \
         webview.cpp \
@@ -122,6 +123,7 @@ HEADERS += \
     settingswidget.h \
     sunclock.hpp \
     theme.h \
+    updatechecker.h \
     utils.h \
     webenginepage.h \
     webview.h \

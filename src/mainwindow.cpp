@@ -31,6 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
   createWebEngine();
   initSettingWidget();
   initRateWidget();
+  initUpdateChecker();
   QApplication::processEvents();
   tryLock();
   updateWindowTheme();
@@ -97,6 +98,19 @@ void MainWindow::initRateWidget() {
       rateApp->delayShowEvent();
     }
   });
+}
+
+void MainWindow::initUpdateChecker() {
+  m_updateChecker = new UpdateChecker(this);
+
+  connect(m_updateChecker, &UpdateChecker::updateAvailable, this,
+          &MainWindow::onUpdateAvailable);
+  connect(m_updateChecker, &UpdateChecker::downloadProgress, this,
+          &MainWindow::onUpdateDownloadProgress);
+  connect(m_updateChecker, &UpdateChecker::downloadFinished, this,
+          &MainWindow::onUpdateDownloadFinished);
+  connect(m_updateChecker, &UpdateChecker::checkError, this,
+          &MainWindow::onUpdateCheckError);
 }
 
 void MainWindow::runMinimized() {
@@ -627,6 +641,11 @@ void MainWindow::createActions() {
   m_aboutAction = new QAction(tr("&About"), this);
   connect(m_aboutAction, &QAction::triggered, this, &MainWindow::showAbout);
 
+  m_updateAction = new QAction(tr("🔔 Check for Updates"), this);
+  m_updateAction->setVisible(false);
+  connect(m_updateAction, &QAction::triggered, this,
+          &MainWindow::onUpdateActionTriggered);
+
   m_quitAction = new QAction(tr("&Quit"), this);
   m_quitAction->setShortcut(QKeySequence(Qt::Modifier::CTRL + Qt::Key_Q));
   connect(m_quitAction, &QAction::triggered, this, &MainWindow::quitApp);
@@ -655,6 +674,8 @@ void MainWindow::createTrayIcon() {
   m_trayIconMenu->addAction(m_toggleThemeAction);
   m_trayIconMenu->addAction(m_settingsAction);
   m_trayIconMenu->addAction(m_aboutAction);
+  m_trayIconMenu->addSeparator();
+  m_trayIconMenu->addAction(m_updateAction);
   m_trayIconMenu->addSeparator();
   m_trayIconMenu->addAction(m_quitAction);
 
@@ -1273,4 +1294,46 @@ void MainWindow::alreadyRunning(bool notify) {
   this->setWindowState((this->windowState() & ~Qt::WindowMinimized) |
                        Qt::WindowActive);
   this->show();
+}
+
+void MainWindow::onUpdateAvailable(QString version, QString downloadUrl) {
+  m_updateAction->setText(tr("🔔 Update %1 available — click to install").arg(version));
+  m_updateAction->setVisible(true);
+  showNotification(QApplication::applicationName(),
+                   tr("Update %1 is ready. Click 'Update' in the tray menu to install.")
+                       .arg(version));
+}
+
+void MainWindow::onUpdateDownloadProgress(qint64 received, qint64 total) {
+  if (total > 0) {
+    int percent = static_cast<int>((received * 100) / total);
+    m_updateAction->setText(tr("Downloading update... %1%").arg(percent));
+  }
+}
+
+void MainWindow::onUpdateDownloadFinished(QString localPath) {
+  m_updateAction->setText(tr("✅ Restart to apply update"));
+  showNotification(QApplication::applicationName(),
+                   tr("Update downloaded. Click 'Update' in the tray menu to restart."));
+}
+
+void MainWindow::onUpdateCheckError(QString message) {
+  qWarning() << "Update check error:" << message;
+}
+
+void MainWindow::onUpdateActionTriggered() {
+  if (!m_updateChecker) {
+    return;
+  }
+
+  if (m_updateChecker->state() == UpdateChecker::UpdateAvailable) {
+    m_updateAction->setEnabled(false);
+    m_updateChecker->downloadUpdate(m_updateChecker->downloadUrl());
+  } else if (m_updateChecker->state() == UpdateChecker::ReadyToRestart) {
+    QString updatePath = m_updateChecker->downloadedFilePath();
+    if (!updatePath.isEmpty()) {
+      QProcess::startDetached(updatePath, {});
+      qApp->quit();
+    }
+  }
 }
