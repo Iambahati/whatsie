@@ -80,6 +80,7 @@ void MainWindow::initAutoLock() {
 }
 
 void MainWindow::initRateWidget() {
+  return;
   RateApp *rateApp = new RateApp(this, "snap://whatsie", 5, 5, 1000 * 30);
   rateApp->setWindowTitle(QApplication::applicationName() + " | " +
                           tr("Rate Application"));
