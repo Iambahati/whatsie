@@ -137,7 +137,8 @@ int main(int argc, char *argv[]) {
   }
 
   QWebEngineProfile *profile = QWebEngineProfile::defaultProfile();
-  profile->settings()->setUserStyleSheetUrl(QUrl::fromLocalFile("dark_mode.css"));
+  // setUserStyleSheetUrl is deprecated/removed in Qt 5.15+
+  // CSS is now injected via JavaScript in WebEnginePage::injectDarkModeCSS
 
   MainWindow whatsie;
 
