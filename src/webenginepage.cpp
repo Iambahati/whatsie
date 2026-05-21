@@ -146,6 +146,7 @@ void WebEnginePage::handleLoadFinished(bool ok) {
     injectFullWidthJavaScript();
     injectClassChangeObserver();
     injectNewChatJavaScript();
+    injectDarkModeCSS();
   }
 }
 
@@ -323,20 +324,28 @@ void WebEnginePage::javaScriptConsoleMessage(
 void WebEnginePage::injectPreventScrollWheelZoomHelper() {
   QString js = R"(
                     (function () {
-                        const SSWZ = function () {
-                            this.keyScrollHandler = function (e) {
-                                if (e.ctrlKey) {
-                                    e.preventDefault();
-                                    return false;
-                                }
+                        if (window.__whatsieZoomGuardInstalled) return;
+                        window.__whatsieZoomGuardInstalled = true;
+
+                        if (window !== top) return;
+
+                        var _preventZoomHandler = null;
+
+                        window.addEventListener('keydown', function (e) {
+                            if ((e.key === 'Control' || e.key === 'Meta') && !_preventZoomHandler) {
+                                _preventZoomHandler = function (we) {
+                                    we.preventDefault();
+                                };
+                                window.addEventListener('wheel', _preventZoomHandler, { passive: false });
                             }
-                        };
-                        if (window === top) {
-                            const sswz = new SSWZ();
-                            window.addEventListener('wheel', sswz.keyScrollHandler, {
-                                passive: false
-                            });
-                        }
+                        });
+
+                        window.addEventListener('keyup', function (e) {
+                            if ((e.key === 'Control' || e.key === 'Meta') && _preventZoomHandler) {
+                                window.removeEventListener('wheel', _preventZoomHandler);
+                                _preventZoomHandler = null;
+                            }
+                        });
                     })();
                 )";
   this->runJavaScript(js);
@@ -413,5 +422,39 @@ void WebEnginePage::injectNewChatJavaScript() {
                 {
                     return (openNewChatWhatsie != 'undefined');
                 })";
+  this->runJavaScript(js);
+}
+
+void WebEnginePage::injectDarkModeCSS() {
+  QString css = R"(
+    body {
+        background-color: #1a202c !important;
+        color: #e2e8f0 !important;
+    }
+    a {
+        color: #63b3ed !important;
+    }
+    a:visited {
+        color: #90cdf4 !important;
+    }
+    img, video, picture {
+        opacity: 0.85;
+    }
+    input, textarea, select {
+        background-color: #2d3748 !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #4a5568 !important;
+    }
+    ::placeholder {
+        color: #718096 !important;
+    }
+  )";
+  
+  QString js = QString("(function() {"
+                      "  var style = document.createElement('style');"
+                      "  style.innerHTML = `%1`;"
+                      "  document.head.appendChild(style);"
+                      "})()").arg(css);
+  
   this->runJavaScript(js);
 }
