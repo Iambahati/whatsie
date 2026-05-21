@@ -1,17 +1,40 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QAction>
+#include <QApplication>
+#include <QFileDialog>
+#include <QGraphicsOpacityEffect>
+#include <QIcon>
 #include <QMainWindow>
 #include <QMenu>
+#include <QMessageBox>
+#include <QProgressBar>
+#include <QRadioButton>
+#include <QStatusBar>
+#include <QStyle>
+#include <QStyleFactory>
 #include <QSystemTrayIcon>
+#include <QWebEngineContextMenuData>
+#include <QWebEngineCookieStore>
+#include <QWebEngineFullScreenRequest>
+#include <QWebEngineProfile>
+#include <QWebEngineSettings>
+#include <QWebEngineView>
 
+#include "about.h"
 #include "autolockeventfilter.h"
+#include "dictionaries.h"
 #include "downloadmanagerwidget.h"
 #include "lock.h"
 #include "notificationpopup.h"
+#include "rateapp.h"
+#include "requestinterceptor.h"
 #include "settingswidget.h"
+#include "theme.h"
+#include "updatechecker.h"
 #include "webenginepage.h"
-#include <libnotify-qt.h>
+#include "webview.h"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -31,6 +54,7 @@ public slots:
   void updatePageTheme();
   void handleWebViewTitleChanged(const QString &title);
   void handleLoadFinished(bool loaded);
+  void handleDownloadRequested(QWebEngineDownloadItem *download);
   void showSettings(bool isAskedByCLI = false);
   void showAbout();
   void lockApp();
@@ -48,16 +72,17 @@ private:
   void createTrayIcon();
   void createWebEngine();
   QString getPageTheme() const;
+  void handleCookieAdded(const QNetworkCookie &cookie);
   void doAppReload();
   void askToReloadPage();
   void updateSettingsUserAgentWidget();
   void createWebPage(bool offTheRecord = false);
   void initSettingWidget();
+  void initGlobalWebProfile();
   void tryLock();
   void checkLoadedCorrectly();
   void loadingQuirk(const QString &test);
   void setNotificationPresenter(QWebEngineProfile *profile);
-  Notification::EventPtr notify(const QString& title, const QString& body, qint32 timeout);
   void initRateWidget();
   void handleZoomOnWindowStateChange(const QWindowStateChangeEvent *ev);
   void handleZoom();
@@ -67,14 +92,15 @@ private:
   void initAutoLock();
   void triggerNewChat(const QString &phone, const QString &text);
   void restoreMainWindow();
+  void initUpdateChecker();
 
-  Notification::Manager m_notifier;
   QIcon m_trayIconNormal;
   QRegularExpression m_notificationsTitleRegExp;
   QRegularExpression m_unreadMessageCountRegExp;
   DownloadManagerWidget m_downloadManagerWidget;
   QScopedPointer<QWebEngineProfile> m_otrProfile;
   int m_correctlyLoadedRetries = 4;
+  QStringList m_dictionaries;
 
   QAction *m_reloadAction = nullptr;
   QAction *m_minimizeAction = nullptr;
@@ -86,6 +112,7 @@ private:
   QAction *m_lockAction = nullptr;
   QAction *m_fullscreenAction = nullptr;
   QAction *m_openUrlAction = nullptr;
+  QAction *m_updateAction = nullptr;
 
   QMenu *m_trayIconMenu = nullptr;
   QSystemTrayIcon *m_systemTrayIcon = nullptr;
@@ -93,6 +120,7 @@ private:
   SettingsWidget *m_settingsWidget = nullptr;
   Lock *m_lockWidget = nullptr;
   AutoLockEventFilter *m_autoLockEventFilter = nullptr;
+  UpdateChecker *m_updateChecker = nullptr;
   Qt::WindowStates windowStateBeforeFullScreen;
 
   QString userDesktopEnvironment = Utils::detectDesktopEnvironment();
@@ -108,6 +136,11 @@ private slots:
   void quitApp();
   void changeLockPassword();
   void appAutoLockChanged();
+  void onUpdateAvailable(QString version, QString downloadUrl);
+  void onUpdateDownloadProgress(qint64 received, qint64 total);
+  void onUpdateDownloadFinished(QString localPath);
+  void onUpdateCheckError(QString message);
+  void onUpdateActionTriggered();
 };
 
 #endif // MAINWINDOW_H

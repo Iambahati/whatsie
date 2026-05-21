@@ -1,0 +1,40 @@
+name: Build Src
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  Linux-Build:
+    name: Linux
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            qtbase5-dev \
+            qtwebengine5-dev \
+            qtwebengine5-dev-tools \
+            libqt5webenginewidgets5 \
+            libx11-dev \
+            libx11-xcb-dev
+
+      - name: Build source
+        run: |
+          cd src
+          qmake
+          make -j$(nproc)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whatsie-linux-x86_64
+          path: src/whatsie
+          retention-days: 7

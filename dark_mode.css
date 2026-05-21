@@ -1,0 +1,41 @@
+/*
+ * Dark mode CSS for QWebEngineView
+ * Injects styles to force dark mode on web pages.
+ */
+
+body {
+    background-color: #1a202c !important; /* Dark background */
+    color: #e2e8f0 !important; /* Light text */
+}
+
+/* Handle links */
+a {
+    color: #63b3ed !important; /* Light blue for links */
+}
+a:visited {
+    color: #90cdf4 !important; /* Slightly lighter blue for visited links */
+}
+
+/* Images and media */
+img, video, picture {
+    opacity: 0.85; /* Slightly reduce opacity for a softer look */
+    border-radius: 50%; /* Make images circular */
+}
+
+/* Specific elements that might have hardcoded light backgrounds */
+/* Note: Avoid universal selector to preserve WhatsApp Web's responsive design */
+body, div, span, p, a, button, input, textarea, select, ul, ol, li, h1, h2, h3, h4, h5, h6 {
+    background-color: #1a202c !important;
+    border-color: #4a5568 !important; /* Darker borders */
+}
+
+/* You can add more specific selectors here if needed */
+/* For example, to target input fields: */
+input, textarea, select {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #4a5568 !important;
+}
+::placeholder {
+    color: #718096 !important; /* Muted placeholder text */
+}

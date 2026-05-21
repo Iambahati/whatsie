@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.semrel.outputs.version }}
+      version_changed: ${{ steps.semrel.outputs.version_changed }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
@@ -24,3 +27,46 @@ jobs:
         with:
           commit_message: "docs(changelog): update cl & ver after release"
           file_pattern: CHANGELOG.md
+
+  Build-And-Upload:
+    name: Build & Attach Binary Asset
+    needs: Release
+    if: needs.Release.outputs.version_changed == 'true'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.Release.outputs.version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ env.VERSION }}
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            qtbase5-dev \
+            qtwebengine5-dev \
+            qtwebengine5-dev-tools \
+            libqt5webenginewidgets5 \
+            libx11-dev \
+            libx11-xcb-dev
+
+      - name: Build source
+        run: |
+          cd src
+          qmake
+          make -j$(nproc)
+
+      - name: Package and upload binary asset
+        run: |
+          ASSET_NAME="whatsie-linux-x86_64-v${{ env.VERSION }}.tar.gz"
+          tar -czf "$ASSET_NAME" -C src whatsie
+          gh release upload "v${{ env.VERSION }}" "$ASSET_NAME" \
+            --clobber \
+            --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
