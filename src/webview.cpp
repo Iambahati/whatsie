@@ -85,12 +85,7 @@ void WebView::contextMenuEvent(QContextMenuEvent *event) {
     QWebEngineView::contextMenuEvent(event);
     return;
   }
-  // if content is not editable
-  if (data.selectedText().isEmpty() && !data.isContentEditable()) {
-    event->ignore();
-    return;
-  }
-
+  
   auto pageWebengineProfile = page()->profile();
   const QStringList &languages = pageWebengineProfile->spellCheckLanguages();
   menu->addSeparator();
