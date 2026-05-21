@@ -19,10 +19,12 @@ a:visited {
 /* Images and media */
 img, video, picture {
     opacity: 0.85; /* Slightly reduce opacity for a softer look */
+    border-radius: 50%; /* Make images circular */
 }
 
 /* Specific elements that might have hardcoded light backgrounds */
-* {
+/* Note: Avoid universal selector to preserve WhatsApp Web's responsive design */
+body, div, span, p, a, button, input, textarea, select, ul, ol, li, h1, h2, h3, h4, h5, h6 {
     background-color: #1a202c !important;
     border-color: #4a5568 !important; /* Darker borders */
 }
