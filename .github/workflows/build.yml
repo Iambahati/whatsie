@@ -22,7 +22,6 @@ jobs:
             qtbase5-dev \
             qtwebengine5-dev \
             qtwebengine5-dev-tools \
-            libqt5positioning5-dev \
             libqt5webenginewidgets5 \
             libx11-dev \
             libx11-xcb-dev
