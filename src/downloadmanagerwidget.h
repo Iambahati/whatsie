@@ -58,9 +58,9 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QWidget>
-#include <QWebEngineDownloadRequest>
+#include <QWebEngineDownloadItem>
 
-using QWebEngineDownloadItem = QWebEngineDownloadRequest;
+using QWebEngineDownloadItem = QWebEngineDownloadItem;
 
 class DownloadWidget;
 

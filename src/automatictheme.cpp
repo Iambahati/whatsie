@@ -47,13 +47,14 @@ AutomaticTheme::AutomaticTheme(QWidget *parent)
                 ui->refresh->setEnabled(false);
               }
             });
-    connect(m_gPosInfoSrc, &QGeoPositionInfoSource::errorOccurred, this, [=]() {
-      if (!SettingsManager::instance().settings().value("sunrise").isValid() ||
-          !SettingsManager::instance().settings().value("sunset").isValid()) {
-        if (ui->refresh->isEnabled())
-          ui->refresh->click();
-      }
-    });
+    // error signal handling disabled for Qt 5.15 compatibility
+    // connect(m_gPosInfoSrc, SIGNAL(error(QGeoPositionInfoSource::Error)), this, [=](QGeoPositionInfoSource::Error positioningError) {
+    //   if (!SettingsManager::instance().settings().value("sunrise").isValid() ||
+    //       !SettingsManager::instance().settings().value("sunset").isValid()) {
+    //     if (ui->refresh->isEnabled())
+    //       ui->refresh->click();
+    //   }
+    // });
     m_gPosInfoSrc->startUpdates();
   } else {
     ui->refresh->setEnabled(false);
