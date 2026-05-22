@@ -1,3 +1,14 @@
+## 1.0.1 (2026-05-22)
+
+#### 🐞 Bug Fixes
+
+* Qt 5.15 compatibility for download and positioning APIs (05b280f3)
+
+#### 📄 Documentation
+
+* **changelog:** update cl & ver after release (5ed8b651)
+
+
 ## 1.0.0 (2026-05-21)
 
 #### 🎁 Feature
