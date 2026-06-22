@@ -57,73 +57,33 @@ Options:
   -n, --new-chat       Open new chat prompt in a running instance of WhatSie
 ```
 
-## Build from Source (Linux)
+## Build from Source (Ubuntu/Debian)
 
-### Requirements
- - git, cmake >= 3.24, ninja-build
- - Qt6 >= 6.0 (qt6-base-dev, qt6-webengine-dev, qt6-positioning-dev)
- - C++17 compiler (GCC 7+, Clang 5+)
- - libx11-dev
-
-### Install Dependencies
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install cmake ninja-build qt6-base-dev qt6-webengine-dev \
-    qt6-positioning-dev libx11-dev build-essential
-```
-
-**Fedora:**
-```bash
-sudo dnf install cmake ninja-build qt6-qtbase-devel qt6-qtwebengine-devel \
-    qt6-qttools-devel libX11-devel gcc-c++
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S cmake ninja qt6-base qt6-webengine qt6-positioning
-```
-
-### Build & Run
+### Quick Start
 
 ```bash
 git clone https://github.com/keshavbhatt/whatsie.git
 cd whatsie
-make build-release
-./build/whatsie
+bash setup.sh
 ```
+
+`setup.sh` installs all required dependencies, generates the Makefile, and builds the binary in one step. The built binary lands at `./whatsie`.
 
 ### Install (Optional)
 
 ```bash
-# Install to /usr/local
-make install
+# System-wide install
+sudo make install
 
-# OR install system-wide to /usr
-sudo make install INSTALL_PREFIX=/usr
+# Desktop integration (app menu + autostart)
+bash install_desktop.sh
 ```
 
-### Common Build Commands
+### Run Without Installing
 
 ```bash
-make build-release    # Build in Release mode
-make build-debug      # Build in Debug mode
-make install          # Install to /usr/local
-make run              # Run the built executable
-make clean            # Clean build artifacts
-make help             # Show all available targets
+./whatsie
 ```
-
-### Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| CMake not found | `sudo apt install cmake` |
-| Qt6 not found | `sudo apt install qt6-base-dev qt6-webengine-dev` |
-| Ninja not found | `sudo apt install ninja-build` |
-| Permission denied | `make install INSTALL_PREFIX=~/.local` |
-
-For detailed build instructions, see `BUILD_QUICK_REFERENCE.md`
 
 
 
