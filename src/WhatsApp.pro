@@ -34,11 +34,11 @@ CONFIG += c++17
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 !qtConfig(webengine-spellchecker) {
-    error("Qt WebEngine compiled without spellchecker support, this example will not work.")
-}
-
-qtConfig(webengine-native-spellchecker) {
-    error("Spellcheck example can not be built when using native OS dictionaries.")
+    message("Warning: Qt WebEngine compiled without spellchecker support.")
+} else {
+    qtConfig(webengine-native-spellchecker) {
+        message("Warning: Using native OS dictionaries for spellcheck.")
+    }
 }
 
 TARGET = whatsie
@@ -82,6 +82,7 @@ DEFINES += VERSIONSTR=\\\"$${VERSION}\\\"
 # DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+        common.cpp \
         about.cpp \
         automatictheme.cpp \
         dictionaries.cpp \
@@ -105,6 +106,7 @@ RESOURCES += \
         icons.qrc
 
 HEADERS += \
+    common.h \
     about.h \
     autolockeventfilter.h \
     automatictheme.h \
