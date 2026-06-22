@@ -60,7 +60,6 @@
 #include <QWidget>
 #include <QWebEngineDownloadItem>
 
-using QWebEngineDownloadItem = QWebEngineDownloadItem;
 
 class DownloadWidget;
 

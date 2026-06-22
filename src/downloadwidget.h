@@ -57,9 +57,7 @@
 #include <QElapsedTimer>
 #include <QFrame>
 #include <QTime>
-#include <QWebEngineDownloadRequest>
-
-using QWebEngineDownloadItem = QWebEngineDownloadRequest;
+#include <QWebEngineDownloadItem>
 
 // Displays one ongoing or finished download (QWebEngineDownloadItem).
 class DownloadWidget final : public QFrame, public Ui::DownloadWidget {

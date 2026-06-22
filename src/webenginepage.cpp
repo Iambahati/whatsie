@@ -1,5 +1,4 @@
 #include "webenginepage.h"
-#include "webengineprofilemanager.h"
 
 WebEnginePage::WebEnginePage(QWebEngineProfile *profile, QObject *parent)
     : QWebEnginePage(profile, parent) {
@@ -16,7 +15,7 @@ WebEnginePage::WebEnginePage(QWebEngineProfile *profile, QObject *parent)
           &WebEnginePage::handleLoadFinished);
   connect(this, &QWebEnginePage::authenticationRequired, this,
           &WebEnginePage::handleAuthenticationRequired);
-  connect(this, &QWebEnginePage::permissionRequested, this,
+  connect(this, &QWebEnginePage::featurePermissionRequested, this,
           &WebEnginePage::handlePermissionRequested);
   connect(this, &QWebEnginePage::proxyAuthenticationRequired, this,
           &WebEnginePage::handleProxyAuthenticationRequired);
@@ -24,8 +23,6 @@ WebEnginePage::WebEnginePage(QWebEngineProfile *profile, QObject *parent)
           &WebEnginePage::handleRegisterProtocolHandlerRequested);
   connect(this, &QWebEnginePage::selectClientCertificate, this,
           &WebEnginePage::handleSelectClientCertificate);
-  connect(this, &QWebEnginePage::certificateError, this,
-          &WebEnginePage::handleCertificateError);
 }
 
 bool WebEnginePage::acceptNavigationRequest(const QUrl &url,
@@ -45,59 +42,55 @@ WebEnginePage::createWindow(QWebEnginePage::WebWindowType type) {
   return new WebEnginePage(this->profile());
 }
 
-inline QString questionForPermission(const QWebEnginePermission &permission) {
-  switch (permission.permissionType()) {
-  case QWebEnginePermission::PermissionType::Geolocation:
+inline QString questionForPermission(QWebEnginePage::Feature feature) {
+  switch (feature) {
+  case QWebEnginePage::Geolocation:
     return WebEnginePage::tr("Allow %1 to access your location information?");
-  case QWebEnginePermission::PermissionType::MediaAudioCapture:
+  case QWebEnginePage::MediaAudioCapture:
     return WebEnginePage::tr("Allow %1 to access your microphone?");
-  case QWebEnginePermission::PermissionType::MediaVideoCapture:
+  case QWebEnginePage::MediaVideoCapture:
     return WebEnginePage::tr("Allow %1 to access your webcam?");
-  case QWebEnginePermission::PermissionType::MediaAudioVideoCapture:
+  case QWebEnginePage::MediaAudioVideoCapture:
     return WebEnginePage::tr("Allow %1 to access your microphone and webcam?");
-  case QWebEnginePermission::PermissionType::MouseLock:
+  case QWebEnginePage::MouseLock:
     return WebEnginePage::tr("Allow %1 to lock your mouse cursor?");
-  case QWebEnginePermission::PermissionType::DesktopVideoCapture:
+  case QWebEnginePage::DesktopVideoCapture:
     return WebEnginePage::tr("Allow %1 to capture video of your desktop?");
-  case QWebEnginePermission::PermissionType::DesktopAudioVideoCapture:
-    return WebEnginePage::tr(
-        "Allow %1 to capture audio and video of your desktop?");
-  case QWebEnginePermission::PermissionType::Notifications:
+  case QWebEnginePage::DesktopAudioVideoCapture:
+    return WebEnginePage::tr("Allow %1 to capture audio and video of your desktop?");
+  case QWebEnginePage::Notifications:
     return WebEnginePage::tr("Allow %1 to show notification on your desktop?");
   default:
     return QString();
   }
 }
 
-void WebEnginePage::handlePermissionRequested(QWebEnginePermission permission) {
+void WebEnginePage::handlePermissionRequested(const QUrl &securityOrigin,
+                                              QWebEnginePage::Feature feature) {
   bool autoPlay = true;
   if (SettingsManager::instance().settings().value("autoPlayMedia").isValid())
-    autoPlay = SettingsManager::instance()
-                   .settings()
-                   .value("autoPlayMedia", false)
-                   .toBool();
+    autoPlay = SettingsManager::instance().settings().value("autoPlayMedia", false).toBool();
 
-  if (autoPlay && (permission.permissionType() == QWebEnginePermission::PermissionType::MediaVideoCapture ||
-                   permission.permissionType() == QWebEnginePermission::PermissionType::MediaAudioVideoCapture)) {
-    WebEngineProfileManager::instance().profile()->settings()
-        ->setAttribute(QWebEngineSettings::PlaybackRequiresUserGesture, false);
+  if (autoPlay && (feature == QWebEnginePage::MediaVideoCapture ||
+                   feature == QWebEnginePage::MediaAudioVideoCapture)) {
+    this->profile()->settings()->setAttribute(QWebEngineSettings::PlaybackRequiresUserGesture, false);
   }
 
   QString title = tr("Permission Request");
-  QString question = questionForPermission(permission).arg(permission.origin().host());
+  QString question = questionForPermission(feature).arg(securityOrigin.host());
 
-  QString permissionTypeStr = QString::number(static_cast<int>(permission.permissionType()));
+  QString permissionTypeStr = QString::number(static_cast<int>(feature));
   SettingsManager::instance().settings().beginGroup("permissions");
 
   if (SettingsManager::instance().settings().value(permissionTypeStr, false).toBool()) {
-    permission.grant();
+    setFeaturePermission(securityOrigin, feature, QWebEnginePage::PermissionGrantedByUser);
   } else {
     if (!question.isEmpty() &&
         QMessageBox::question(view()->window(), title, question) == QMessageBox::Yes) {
-      permission.grant();
+      setFeaturePermission(securityOrigin, feature, QWebEnginePage::PermissionGrantedByUser);
       SettingsManager::instance().settings().setValue(permissionTypeStr, true);
     } else {
-      permission.deny();
+      setFeaturePermission(securityOrigin, feature, QWebEnginePage::PermissionDeniedByUser);
       SettingsManager::instance().settings().setValue(permissionTypeStr, false);
     }
   }
@@ -170,9 +163,8 @@ QStringList WebEnginePage::chooseFiles(QWebEnginePage::FileSelectionMode mode,
   return selectedFiles;
 }
 
-void WebEnginePage::handleCertificateError(
-    const QWebEngineCertificateError &error) {
-  QString description = error.description();
+bool WebEnginePage::certificateError(const QWebEngineCertificateError &error) {
+  QString description = error.errorDescription();
   QWidget *mainWindow = view()->window();
   if (error.isOverridable()) {
     QDialog dialog(mainWindow);
@@ -187,15 +179,14 @@ void WebEnginePage::handleCertificateError(
     certificateDialog.m_iconLabel->setPixmap(icon.pixmap(32, 32));
     certificateDialog.m_errorLabel->setText(description);
     dialog.setWindowTitle(tr("Certificate Error"));
-    bool accepted = dialog.exec() == QDialog::Accepted;
-    auto handler = const_cast<QWebEngineCertificateError &>(error);
-    if (accepted)
-      handler.acceptCertificate();
-    else
-      handler.rejectCertificate();
+    return dialog.exec() == QDialog::Accepted;
   }
-
   QMessageBox::critical(mainWindow, tr("Certificate Error"), description);
+  return false;
+}
+
+void WebEnginePage::injectClassChangeObserver() {
+  // no-op stub: full-width view class injection not implemented for Qt5 build
 }
 
 void WebEnginePage::handleAuthenticationRequired(const QUrl &requestUrl,

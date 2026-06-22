@@ -37,10 +37,8 @@ DownloadWidget::DownloadWidget(QWebEngineDownloadItem *download,
       emit removeClicked(this);
   });
 
-  connect(m_download, &QWebEngineDownloadItem::receivedBytesChanged, this,
-          &DownloadWidget::updateWidget);
-  connect(m_download, &QWebEngineDownloadItem::totalBytesChanged, this,
-          &DownloadWidget::updateWidget);
+  connect(m_download, &QWebEngineDownloadItem::downloadProgress, this,
+          [this](qint64, qint64) { updateWidget(); });
 
   connect(m_download, &QWebEngineDownloadItem::stateChanged, this,
           &DownloadWidget::updateWidget);

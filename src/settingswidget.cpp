@@ -781,3 +781,7 @@ void SettingsWidget::keyPressEvent(QKeyEvent *e) {
 
   QWidget::keyPressEvent(e);
 }
+
+void SettingsWidget::loadDictionaries(const QStringList &dictionaries) {
+  Q_UNUSED(dictionaries);
+}

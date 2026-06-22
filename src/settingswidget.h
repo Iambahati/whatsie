@@ -27,6 +27,9 @@ signals:
   void zoomChanged();
   void zoomMaximizedChanged();
   void appAutoLockChanged();
+  void dictChanged(QString dict);
+  void spellCheckChanged(bool checked);
+  void updateFullWidthView(bool checked);
 
 public:
   explicit SettingsWidget(QWidget *parent = nullptr, int screenNumber = 0,
@@ -36,6 +39,7 @@ public:
 
 public slots:
   void refresh();
+  void loadDictionaries(const QStringList &dictionaries);
   void updateDefaultUAButton(const QString engineUA);
   void appLockSetChecked(bool checked);
   void setCurrentPasswordText(QString str);

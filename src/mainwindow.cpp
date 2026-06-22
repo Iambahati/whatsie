@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 
+#include <QDesktopWidget>
 #include <QInputDialog>
 #include <QRandomGenerator>
 #include <QRegularExpression>
@@ -592,7 +593,7 @@ void MainWindow::notificationClicked() {
 void MainWindow::createActions() {
 
   m_openUrlAction = new QAction("New Chat", this);
-  m_openUrlAction->setShortcut(QKeySequence(Qt::Modifier::CTRL + Qt::Key_N));
+  m_openUrlAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_N));
   connect(m_openUrlAction, &QAction::triggered, this, &MainWindow::newChat);
   addAction(m_openUrlAction);
 
@@ -607,7 +608,7 @@ void MainWindow::createActions() {
   addAction(m_minimizeAction);
 
   QShortcut *minimizeShortcut = new QShortcut(
-      QKeySequence(Qt::Modifier::CTRL + Qt::Key_W), this, SLOT(hide()));
+      QKeySequence(Qt::CTRL + Qt::Key_W), this, SLOT(hide()));
   minimizeShortcut->setAutoRepeat(false);
 
   m_restoreAction = new QAction(tr("&Restore"), this);
@@ -621,19 +622,19 @@ void MainWindow::createActions() {
   addAction(m_reloadAction);
 
   m_lockAction = new QAction(tr("Loc&k"), this);
-  m_lockAction->setShortcut(QKeySequence(Qt::Modifier::CTRL + Qt::Key_L));
+  m_lockAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_L));
   connect(m_lockAction, &QAction::triggered, this, &MainWindow::lockApp);
   addAction(m_lockAction);
 
   m_settingsAction = new QAction(tr("&Settings"), this);
-  m_settingsAction->setShortcut(QKeySequence(Qt::Modifier::CTRL + Qt::Key_P));
+  m_settingsAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
   connect(m_settingsAction, &QAction::triggered, this,
           &MainWindow::showSettings);
   addAction(m_settingsAction);
 
   m_toggleThemeAction = new QAction(tr("&Toggle theme"), this);
   m_toggleThemeAction->setShortcut(
-      QKeySequence(Qt::Modifier::CTRL + Qt::Key_T));
+      QKeySequence(Qt::CTRL + Qt::Key_T));
   connect(m_toggleThemeAction, &QAction::triggered, this,
           &MainWindow::toggleTheme);
   addAction(m_toggleThemeAction);
@@ -647,7 +648,7 @@ void MainWindow::createActions() {
           &MainWindow::onUpdateActionTriggered);
 
   m_quitAction = new QAction(tr("&Quit"), this);
-  m_quitAction->setShortcut(QKeySequence(Qt::Modifier::CTRL + Qt::Key_Q));
+  m_quitAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
   connect(m_quitAction, &QAction::triggered, this, &MainWindow::quitApp);
   addAction(m_quitAction);
 }

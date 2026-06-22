@@ -16,8 +16,6 @@
 #include <QWebEngineRegisterProtocolHandlerRequest>
 #include <QWebEngineSettings>
 #include <QWebEngineView>
-#include <QWebEnginePermission>
-
 #include "settingsmanager.h"
 
 #include "ui_certificateerrordialog.h"
@@ -36,14 +34,14 @@ protected:
   QStringList chooseFiles(FileSelectionMode mode, const QStringList &oldFiles,
                           const QStringList &acceptedMimeTypes) override;
 
-  void handleCertificateError(const QWebEngineCertificateError &error);
+  bool certificateError(const QWebEngineCertificateError &error) override;
 
   inline QWidget *view() {
-      return QWebEngineView::forPage(this);
+      return QWebEnginePage::view();
   }
 
 public slots:
-  void handlePermissionRequested(QWebEnginePermission permission);
+  void handlePermissionRequested(const QUrl &securityOrigin, QWebEnginePage::Feature feature);
   void handleLoadFinished(bool ok);
 
 protected slots:
@@ -65,6 +63,9 @@ private slots:
   void injectPreventScrollWheelZoomHelper();
   void injectNewChatJavaScript();
   void injectDarkModeCSS();
+
+public:
+  void injectClassChangeObserver();
 };
 
 #endif // WEBENGINEPAGE_H
