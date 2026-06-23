@@ -18,11 +18,11 @@ int main(int argc, char *argv[]) {
 #ifdef QT_DEBUG
   qputenv("QTWEBENGINE_CHROMIUM_FLAGS",
           "--remote-debugging-port=9421 --ignore-gpu-blocklist --no-sandbox "
-          "--single-process --disable-extensions");
+          "--disable-extensions");
 #else
   qputenv("QTWEBENGINE_CHROMIUM_FLAGS",
           "--disable-logging --ignore-gpu-blocklist --no-sandbox "
-          "--single-process --disable-extensions");
+          "--disable-extensions");
 #endif
 
   SingleApplication instance(argc, argv, true);

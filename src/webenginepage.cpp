@@ -112,7 +112,9 @@ void WebEnginePage::handleLoadFinished(bool ok) {
   if (ok) {
     injectPreventScrollWheelZoomHelper();
     injectNewChatJavaScript();
-    injectDarkModeCSS();
+    if (SettingsManager::instance().settings().value("windowTheme", "light").toString() == "dark") {
+      injectDarkModeCSS();
+    }
   }
 }
 

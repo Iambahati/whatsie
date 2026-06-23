@@ -198,33 +198,23 @@ void MainWindow::checkLoadedCorrectly() {
   if (!m_webEngine || !m_webEngine->page())
     return;
 
-  m_webEngine->page()->runJavaScript(
-      "document.querySelector('body').className",
-      [this](const QVariant &result) {
-        if (result.toString().contains("page-version", Qt::CaseInsensitive)) {
-          qDebug() << "Test 1 found" << result.toString();
-          m_webEngine->page()->runJavaScript(
-              "document.getElementsByTagName('body')[0].innerText = ''");
-          loadingQuirk("test1");
-        } else if (m_webEngine->title().contains("Error",
-                                                 Qt::CaseInsensitive)) {
-          Utils::delete_cache(m_webEngine->page()->profile()->cachePath());
-          Utils::delete_cache(
-              m_webEngine->page()->profile()->persistentStoragePath());
-          SettingsManager::instance().settings().setValue("useragent",
-                                                          defaultUserAgentStr);
-          Utils::DisplayExceptionErrorDialog(
-              "test1 handleWebViewTitleChanged(title) title: Error, "
-              "Resetting UA, Quiting!\nUA: " +
-              SettingsManager::instance()
-                  .settings()
-                  .value("useragent", "DefaultUA")
-                  .toString());
-          m_quitAction->trigger();
-        } else {
-          qDebug() << "Test 1 loaded correctly, value:" << result.toString();
-        }
-      });
+  // Only handle hard error titles — never clear or wipe page body content,
+  // as WhatsApp Web body classes are dynamic and wiping causes infinite reloads.
+  if (m_webEngine->title().contains("Error", Qt::CaseInsensitive)) {
+    Utils::delete_cache(m_webEngine->page()->profile()->cachePath());
+    Utils::delete_cache(
+        m_webEngine->page()->profile()->persistentStoragePath());
+    SettingsManager::instance().settings().setValue("useragent",
+                                                    defaultUserAgentStr);
+    Utils::DisplayExceptionErrorDialog(
+        "handleWebViewTitleChanged(title) title: Error, "
+        "Resetting UA, Quiting!\nUA: " +
+        SettingsManager::instance()
+            .settings()
+            .value("useragent", "DefaultUA")
+            .toString());
+    m_quitAction->trigger();
+  }
 }
 
 void MainWindow::loadingQuirk(const QString &test) {
