@@ -9,6 +9,8 @@
 #include <QStyleHints>
 #include <QUrlQuery>
 #include <QWebEngineNotification>
+#include <QWebEngineScript>
+#include <QWebEngineScriptCollection>
 
 extern QString defaultUserAgentStr;
 extern double defaultZoomFactorMaximized;
@@ -858,6 +860,175 @@ void MainWindow::initGlobalWebProfile() {
                                 .settings()
                                 .value("autoPlayMedia", false)
                                 .toBool());
+
+  // Polyfill code for APIs missing in Chromium 87 (Qt 5.15 WebEngine).
+  // This runs in the main page AND is injected into every Web Worker via the
+  // Worker constructor override at the bottom, since QWebEngineScript cannot
+  // directly target worker contexts.
+  static const QString polyfillCode = QStringLiteral(R"polyfill(
+(function(global) {
+  // Object.hasOwn — Chrome 93+. WAWebNetworkStatus crashes without this.
+  if (!Object.hasOwn) {
+    Object.hasOwn = function(obj, prop) {
+      return Object.prototype.hasOwnProperty.call(obj, prop);
+    };
+  }
+
+  // Array/String.prototype.at — Chrome 92+
+  if (!Array.prototype.at) {
+    Array.prototype.at = function(n) {
+      n = Math.trunc(n) || 0;
+      if (n < 0) n += this.length;
+      if (n < 0 || n >= this.length) return undefined;
+      return this[n];
+    };
+  }
+  if (!String.prototype.at) {
+    String.prototype.at = function(n) {
+      n = Math.trunc(n) || 0;
+      if (n < 0) n += this.length;
+      if (n < 0 || n >= this.length) return undefined;
+      return this[n];
+    };
+  }
+
+  // TypedArray.prototype.at — Chrome 92+
+  var TypedArrayProto = Object.getPrototypeOf(Uint8Array.prototype);
+  if (TypedArrayProto && !TypedArrayProto.at) {
+    TypedArrayProto.at = Array.prototype.at;
+  }
+
+  // structuredClone — Chrome 98+
+  if (typeof global.structuredClone === 'undefined') {
+    global.structuredClone = function(val, opts) {
+      try { return JSON.parse(JSON.stringify(val)); }
+      catch(e) { return val; }
+    };
+  }
+
+  // Error.cause — Chrome 93+
+  if (!('cause' in new Error())) {
+    var _OrigError = Error;
+    Error = function(msg, opts) {
+      var e = new _OrigError(msg);
+      if (opts && opts.cause !== undefined) e.cause = opts.cause;
+      return e;
+    };
+    Error.prototype = _OrigError.prototype;
+    ['captureStackTrace','stackTraceLimit','prepareStackTrace'].forEach(function(k) {
+      if (k in _OrigError) Error[k] = _OrigError[k];
+    });
+  }
+
+  // navigator.userAgentData — Chrome 90+. WA uses this for browser detection.
+  if (typeof navigator !== 'undefined' && !navigator.userAgentData) {
+    var brands = [
+      { brand: 'Chromium',      version: '136' },
+      { brand: 'Google Chrome', version: '136' },
+      { brand: 'Not/A)Brand',   version: '24'  }
+    ];
+    Object.defineProperty(navigator, 'userAgentData', {
+      value: {
+        brands: brands, mobile: false, platform: 'Linux',
+        getHighEntropyValues: function(hints) {
+          var data = {
+            brands: brands, mobile: false, platform: 'Linux',
+            platformVersion: '6.2.0', architecture: 'x86', bitness: '64',
+            model: '', uaFullVersion: '136.0.0.0', fullVersionList: brands
+          };
+          var r = {};
+          (hints || []).forEach(function(h) { if (h in data) r[h] = data[h]; });
+          return Promise.resolve(r);
+        },
+        toJSON: function() { return { brands: brands, mobile: false, platform: 'Linux' }; }
+      },
+      writable: false, configurable: true
+    });
+  }
+
+  // navigator.storage.persist / persisted (main page only)
+  if (typeof navigator !== 'undefined' && navigator.storage) {
+    ['persist','persisted'].forEach(function(m) {
+      if (navigator.storage[m]) {
+        Object.defineProperty(navigator.storage, m, {
+          value: function() { return Promise.resolve(true); },
+          writable: true, configurable: true
+        });
+      }
+    });
+  }
+
+  // crypto.randomUUID — Chrome 92+
+  if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+    crypto.randomUUID = function() {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
+        return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+      });
+    };
+  }
+
+  // Array.prototype.findLast / findLastIndex — Chrome 97+
+  if (!Array.prototype.findLast) {
+    Array.prototype.findLast = function(fn, ctx) {
+      for (var i = this.length - 1; i >= 0; i--)
+        if (fn.call(ctx, this[i], i, this)) return this[i];
+      return undefined;
+    };
+  }
+  if (!Array.prototype.findLastIndex) {
+    Array.prototype.findLastIndex = function(fn, ctx) {
+      for (var i = this.length - 1; i >= 0; i--)
+        if (fn.call(ctx, this[i], i, this)) return i;
+      return -1;
+    };
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this);
+)polyfill");
+
+  QWebEngineScript polyfills;
+  polyfills.setName(QStringLiteral("wa-compat-polyfills"));
+  polyfills.setSourceCode(polyfillCode);
+  polyfills.setInjectionPoint(QWebEngineScript::DocumentCreation);
+  polyfills.setWorldId(QWebEngineScript::MainWorld);
+  polyfills.setRunsOnSubFrames(true);
+  profile->scripts()->insert(polyfills);
+
+  // Override Worker constructor to inject polyfills into every Web Worker.
+  // QWebEngineScript cannot target worker contexts directly; this workaround
+  // wraps the original worker script in a Blob that runs polyfills first via
+  // importScripts, then loads the real script.
+  QWebEngineScript workerHook;
+  workerHook.setName(QStringLiteral("wa-worker-polyfill-hook"));
+  QString escapedPolyfill = polyfillCode;
+  escapedPolyfill.replace(QLatin1Char('\\'), QLatin1String("\\\\"));
+  escapedPolyfill.replace(QLatin1Char('\''), QLatin1String("\\'"));
+  escapedPolyfill.replace(QLatin1Char('\n'), QLatin1String("\\n"));
+  workerHook.setSourceCode(QStringLiteral(R"js(
+(function() {
+  if (typeof Worker === 'undefined') return;
+  var _polyfillSrc = ')js") + escapedPolyfill + QStringLiteral(R"js(';
+
+  var _OrigWorker = Worker;
+  function PatchedWorker(url, opts) {
+    var blob = new Blob(
+      [_polyfillSrc, '\ntry{importScripts(' + JSON.stringify(String(url)) + ');}catch(e){throw e;}'],
+      { type: 'application/javascript' }
+    );
+    var blobURL = URL.createObjectURL(blob);
+    var w = new _OrigWorker(blobURL, opts);
+    w._blobURL = blobURL;
+    var _origTerminate = w.terminate.bind(w);
+    w.terminate = function() { URL.revokeObjectURL(blobURL); _origTerminate(); };
+    return w;
+  }
+  PatchedWorker.prototype = _OrigWorker.prototype;
+  try { Worker = PatchedWorker; } catch(e) {}
+})();
+)js"));
+  workerHook.setInjectionPoint(QWebEngineScript::DocumentCreation);
+  workerHook.setWorldId(QWebEngineScript::MainWorld);
+  workerHook.setRunsOnSubFrames(false);
+  profile->scripts()->insert(workerHook);
 }
 
 void MainWindow::createWebEngine() {
@@ -1092,35 +1263,27 @@ void MainWindow::handleLoadFinished(bool loaded) {
 }
 
 void MainWindow::checkLoadedCorrectly() {
-  if (m_webEngine && m_webEngine->page()) {
-    // test 1 based on the class name of body tag of the page
-    m_webEngine->page()->runJavaScript(
-        "document.querySelector('body').className",
-        [this](const QVariant &result) {
-          if (result.toString().contains("page-version", Qt::CaseInsensitive)) {
-            qDebug() << "Test 1 found" << result.toString();
-            m_webEngine->page()->runJavaScript(
-                "document.getElementsByTagName('body')[0].innerText = ''");
-            loadingQuirk("test1");
-          } else if (m_webEngine->title().contains("Error",
-                                                   Qt::CaseInsensitive)) {
-            Utils::delete_cache(m_webEngine->page()->profile()->cachePath());
-            Utils::delete_cache(
-                m_webEngine->page()->profile()->persistentStoragePath());
-            SettingsManager::instance().settings().setValue(
-                "useragent", defaultUserAgentStr);
-            Utils::DisplayExceptionErrorDialog(
-                "test1 handleWebViewTitleChanged(title) title: Error, "
-                "Resetting UA, Quiting!\nUA: " +
-                SettingsManager::instance()
-                    .settings()
-                    .value("useragent", "DefaultUA")
-                    .toString());
-            m_quitAction->trigger();
-          } else {
-            qDebug() << "Test 1 loaded correctly, value:" << result.toString();
-          }
-        });
+  if (!m_webEngine || !m_webEngine->page())
+    return;
+
+  // Only bail on hard error titles — never wipe page body content.
+  // The old 'page-version' body-class check fired on normal WhatsApp Web DOM,
+  // cleared the page, and triggered infinite reload loops keeping the QR code
+  // from ever appearing.
+  if (m_webEngine->title().contains("Error", Qt::CaseInsensitive)) {
+    Utils::delete_cache(m_webEngine->page()->profile()->cachePath());
+    Utils::delete_cache(
+        m_webEngine->page()->profile()->persistentStoragePath());
+    SettingsManager::instance().settings().setValue("useragent",
+                                                    defaultUserAgentStr);
+    Utils::DisplayExceptionErrorDialog(
+        "handleWebViewTitleChanged(title) title: Error, "
+        "Resetting UA, Quiting!\nUA: " +
+        SettingsManager::instance()
+            .settings()
+            .value("useragent", "DefaultUA")
+            .toString());
+    m_quitAction->trigger();
   }
 }
 

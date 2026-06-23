@@ -284,10 +284,10 @@ void WebEnginePage::handleSelectClientCertificate(
 void WebEnginePage::javaScriptConsoleMessage(
     WebEnginePage::JavaScriptConsoleMessageLevel level, const QString &message,
     int lineId, const QString &sourceId) {
-  Q_UNUSED(level);
-  Q_UNUSED(message);
   Q_UNUSED(lineId);
   Q_UNUSED(sourceId);
+  if (level == WebEnginePage::ErrorMessageLevel || level == WebEnginePage::WarningMessageLevel)
+    qWarning() << "[WA-JS]" << message;
 }
 
 void WebEnginePage::injectPreventScrollWheelZoomHelper() {

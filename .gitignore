@@ -55,4 +55,5 @@ qtwebengine_dictionaries
 whatsie
 
 .idea
+.vscode
 build
