@@ -176,9 +176,12 @@ CONFIG(FLATPAK){
     dictoolbuild.CONFIG = no_link target_predeps
     QMAKE_EXTRA_COMPILERS += dictoolbuild
     
-    dictionaries.files = $${DICTIONARIES_DIR}/
+    # Use cp -f instead of qinstall so reinstalls overwrite existing .bdic files
+    # without failing with "Destination file exists".
     dictionaries.path  = $$DATADIR/org.keshavnrj.ubuntu/WhatSie/
-    
+    dictionaries.extra = mkdir -p $(INSTALL_ROOT)$$DATADIR/org.keshavnrj.ubuntu/WhatSie/qtwebengine_dictionaries && cp -f $$PWD/$${DICTIONARIES_DIR}/*.bdic $(INSTALL_ROOT)$$DATADIR/org.keshavnrj.ubuntu/WhatSie/qtwebengine_dictionaries/
+    dictionaries.CONFIG = no_check_exist
+
     unix:INSTALLS += dictionaries
 }
 

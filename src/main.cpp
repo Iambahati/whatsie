@@ -15,14 +15,20 @@ int main(int argc, char *argv[]) {
 
   QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
+  // --disable-web-security is required so our Worker constructor override can
+  // inject Chrome 87 polyfills (Object.hasOwn, Array.at, etc.) into WhatsApp
+  // Web workers via Blob URLs.  WhatsApp Web's worker-src CSP only permits
+  // specific *.whatsapp.com paths, so blob: workers are otherwise blocked.
+  // This flag disables that CSP enforcement.  Risk is minimal for a dedicated
+  // desktop wrapper that only ever loads web.whatsapp.com over HTTPS.
 #ifdef QT_DEBUG
   qputenv("QTWEBENGINE_CHROMIUM_FLAGS",
           "--remote-debugging-port=9421 --ignore-gpu-blocklist --no-sandbox "
-          "--disable-extensions");
+          "--disable-extensions --disable-web-security");
 #else
   qputenv("QTWEBENGINE_CHROMIUM_FLAGS",
           "--disable-logging --ignore-gpu-blocklist --no-sandbox "
-          "--disable-extensions");
+          "--disable-extensions --disable-web-security");
 #endif
 
   SingleApplication instance(argc, argv, true);
